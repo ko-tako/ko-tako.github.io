@@ -33,6 +33,12 @@
       padding: 10px 20px;
       margin-top: 20px;
     }
+    #install-button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin-top: 20px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -41,9 +47,11 @@
   <div id="last-chime">最後の時報: --:--:--</div>
   <div id="log">[ログ]</div>
   <button id="start-button">時報を開始する</button>
+  <button id="install-button">アプリをインストール</button>
 
   <script>
     let isChimeRunning = false;
+    let deferredPrompt;
 
     // サービスワーカーの登録
     if ('serviceWorker' in navigator) {
@@ -55,6 +63,27 @@
           console.error('Service Worker registration failed:', error);
         });
     }
+
+    // PWAインストールプロンプト
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredPrompt = event; // プロンプトを保存
+      const installButton = document.getElementById('install-button');
+      installButton.style.display = 'block'; // ボタンを表示
+
+      installButton.addEventListener('click', () => {
+        deferredPrompt.prompt(); // インストールプロンプトを表示
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('アプリがインストールされました');
+          } else {
+            console.log('アプリのインストールがキャンセルされました');
+          }
+          deferredPrompt = null; // プロンプトをリセット
+          installButton.style.display = 'none'; // ボタンを隠す
+        });
+      });
+    });
 
     // 時報を開始する関数
     function startChime() {
