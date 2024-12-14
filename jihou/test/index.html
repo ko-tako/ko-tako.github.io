@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PWA 時報</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/jihou/test/manifest.json">
 </head>
 <body>
   <h1>PWA 時報</h1>
   <button id="start-button">時報を開始する</button>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
+      navigator.serviceWorker.register('/jihou/test/service-worker.js')
         .then(() => console.log('Service Worker registered'))
         .catch((err) => console.error('Service Worker registration failed:', err));
     }
