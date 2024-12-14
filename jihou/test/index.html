@@ -58,6 +58,15 @@
       navigator.serviceWorker.register('/jihou/test/service-worker.js')
         .then((registration) => {
           console.log('Service Worker registered with scope:', registration.scope);
+
+          // Push通知の許可をリクエスト
+          Notification.requestPermission().then((permission) => {
+            if (permission === 'granted') {
+              console.log('Push通知が許可されました');
+            } else {
+              console.error('Push通知が拒否されました');
+            }
+          });
         })
         .catch((error) => {
           console.error('Service Worker registration failed:', error);
@@ -103,10 +112,10 @@
         // 現在時刻を画面に表示
         document.getElementById('time-display').textContent = `現在の時刻: ${hours}:${minutes}:${seconds}`;
 
-        // 1分ごとに音声を鳴らす（秒が00のとき）
+        // 1分ごとにPush通知を送る（秒が00のとき）
         if (seconds === '00') {
           const message = `${hours}時${minutes}分になりました。`;
-          announceTime(message);
+          sendPushNotification(message);
 
           // 最後の時報を表示
           document.getElementById('last-chime').textContent = `最後の時報: ${hours}:${minutes}:${seconds}`;
@@ -129,16 +138,17 @@
       announceTimeLoop();
     }
 
-    // Web Speech APIを使ってメッセージを読み上げる
-    function announceTime(message) {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(message);
-        utterance.lang = 'ja-JP'; // 日本語で読み上げる
-        utterance.rate = 1; // 読み上げ速度（1が標準）
-        utterance.pitch = 1; // 音の高さ（1が標準）
-        window.speechSynthesis.speak(utterance);
-      } else {
-        console.error('Web Speech APIがサポートされていません。');
+    // Push通知を送信する
+    function sendPushNotification(message) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification('時報', {
+            body: message,
+            icon: '/jihou/test/icon.png',
+            vibrate: [200, 100, 200], // 振動パターン
+            tag: 'time-notification', // 重複通知防止用タグ
+          });
+        });
       }
     }
 
