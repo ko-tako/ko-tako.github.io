@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1分ごとの時報</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    #time-display {
+      font-size: 2em;
+      margin: 20px;
+    }
+    #chime {
+      font-size: 1.5em;
+      color: green;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>1分ごとの時報</h1>
+  <div id="time-display">--:--:--</div>
+  <div id="chime"></div>
+  <button id="start-button">時報を開始する</button>
+
+  <script>
+    let timer;
+
+    // 時報を開始する関数
+    function startChime() {
+      const startButton = document.getElementById('start-button');
+      startButton.disabled = true; // ボタンを無効化
+      startButton.textContent = "時報が開始されました";
+
+      // 毎秒時刻を更新し、1分ごとに読み上げ
+      timer = setInterval(updateAndAnnounce, 1000);
+    }
+
+    // 時刻を更新して表示し、1分ごとに読み上げる
+    function updateAndAnnounce() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+
+      // 現在時刻を画面に表示
+      const timeDisplay = document.getElementById('time-display');
+      timeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+
+      // 1分ごとに時報を鳴らす（秒が00のとき）
+      if (seconds === '00') {
+        const message = `${hours}時${minutes}分になりました。`;
+        announceTime(message); // 音声で読み上げ
+      }
+    }
+
+    // 音声APIを使ってメッセージを読み上げる
+    function announceTime(message) {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'ja-JP'; // 日本語で読み上げる
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.error('音声APIがサポートされていません。');
+      }
+    }
+
+    // ボタンのクリックイベントで時報を開始
+    document.getElementById('start-button').addEventListener('click', startChime);
+  </script>
+</body>
+</html>
