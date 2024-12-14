@@ -5,26 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PWA 時報</title>
   <link rel="manifest" href="/jihou/test/manifest.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    #time-display {
+      font-size: 2em;
+      margin: 20px;
+    }
+    #last-chime {
+      font-size: 1.5em;
+      color: green;
+      margin: 20px;
+    }
+    #log {
+      font-size: 1em;
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
   <h1>PWA 時報</h1>
+  <div id="time-display">現在の時刻: --:--:--</div>
+  <div id="last-chime">最後の時報: --:--:--</div>
+  <div id="log">[ログ]</div>
   <button id="start-button">時報を開始する</button>
+
   <script>
+    // サービスワーカーの登録
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/jihou/test/service-worker.js')
-        .then(() => console.log('Service Worker registered'))
-        .catch((err) => console.error('Service Worker registration failed:', err));
+        .then((registration) => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
     }
 
-    document.getElementById('start-button').addEventListener('click', () => {
-      setInterval(() => {
-        const now = new Date();
-        const message = `${now.getHours()}時${now.getMinutes()}分になりました。`;
+    let timer;
+
+    // 時報を開始する関数
+    function startChime() {
+      const startButton = document.getElementById('start-button');
+      startButton.disabled = true; // ボタンを無効化
+      startButton.textContent = "時報が開始されました";
+
+      // 毎秒時刻を更新し、1分ごとに音声を鳴らす
+      timer = setInterval(updateAndAnnounce, 1000);
+    }
+
+    // 時刻を更新して表示し、1分ごとに音声を鳴らす
+    function updateAndAnnounce() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+
+      // 現在時刻を画面に表示
+      const timeDisplay = document.getElementById('time-display');
+      timeDisplay.textContent = `現在の時刻: ${hours}:${minutes}:${seconds}`;
+
+      // 1分ごとに時報を鳴らす（秒が00のとき）
+      if (seconds === '00') {
+        const message = `${hours}時${minutes}分になりました。`;
+        announceTime(message); // Web Speech APIで読み上げ
+
+        // 最後の時報を表示
+        const lastChime = document.getElementById('last-chime');
+        lastChime.textContent = `最後の時報: ${hours}:${minutes}:${seconds}`;
+
+        // ログに記録
+        const log = document.getElementById('log');
+        const logEntry = document.createElement('div');
+        logEntry.textContent = `${hours}:${minutes}:${seconds} - ${message}`;
+        log.appendChild(logEntry);
+
+        // スクロールを最下部に
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+
+    // Web Speech APIを使ってメッセージを読み上げる
+    function announceTime(message) {
+      if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(message);
-        utterance.lang = 'ja-JP';
+        utterance.lang = 'ja-JP'; // 日本語で読み上げる
+        utterance.rate = 1; // 読み上げ速度（1が標準）
+        utterance.pitch = 1; // 音の高さ（1が標準）
         window.speechSynthesis.speak(utterance);
-      }, 60000);
-    });
+      } else {
+        console.error('Web Speech APIがサポートされていません。');
+      }
+    }
+
+    // ボタンのクリックイベントで時報を開始
+    document.getElementById('start-button').addEventListener('click', startChime);
   </script>
 </body>
 </html>
