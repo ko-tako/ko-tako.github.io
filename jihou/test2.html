@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1分ごとの時報Audioで対応</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    #time-display {
+      font-size: 2em;
+      margin: 20px;
+    }
+    #chime {
+      font-size: 1.5em;
+      color: green;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>1分ごとの時報Audioで対応</h1>
+  <div id="time-display">--:--:--</div>
+  <div id="chime"></div>
+  <button id="start-button">時報を開始する</button>
+
+  <script>
+    let timer;
+    let audioContext;
+    let oscillator;
+
+    // ビープ音を生成する関数
+    function playBeep() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.type = 'sine'; // 波形タイプ（サイン波）
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // 440Hz（ラの音）
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // 音量調整
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.5); // 0.5秒間再生
+    }
+
+    // 時報を開始する関数
+    function startChime() {
+      const startButton = document.getElementById('start-button');
+      startButton.disabled = true; // ボタンを無効化
+      startButton.textContent = "時報が開始されました";
+
+      // 毎秒時刻を更新し、1分ごとに音声を再生
+      timer = setInterval(updateAndAnnounce, 1000);
+    }
+
+    // 時刻を更新して表示し、1分ごとに音声を鳴らす
+    function updateAndAnnounce() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+
+      // 現在時刻を画面に表示
+      const timeDisplay = document.getElementById('time-display');
+      timeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+
+      // 1分ごとにビープ音を再生（秒が00のとき）
+      if (seconds === '00') {
+        playBeep(); // ビープ音を再生
+        const chimeDisplay = document.getElementById('chime');
+        chimeDisplay.textContent = `${hours}時${minutes}分になりました。`;
+        setTimeout(() => {
+          chimeDisplay.textContent = ""; // メッセージを消す
+        }, 5000); // 5秒後に消す
+      }
+    }
+
+    // ボタンのクリックイベントで時報を開始
+    document.getElementById('start-button').addEventListener('click', startChime);
+  </script>
+</body>
+</html>
