@@ -43,6 +43,8 @@
   <button id="start-button">時報を開始する</button>
 
   <script>
+    let isChimeRunning = false;
+
     // サービスワーカーの登録
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/jihou/test/service-worker.js')
@@ -54,47 +56,48 @@
         });
     }
 
-    let timer;
-
     // 時報を開始する関数
     function startChime() {
+      if (isChimeRunning) return; // すでに動作中なら無視
+      isChimeRunning = true;
+
       const startButton = document.getElementById('start-button');
       startButton.disabled = true; // ボタンを無効化
       startButton.textContent = "時報が開始されました";
 
-      // 毎秒時刻を更新し、1分ごとに音声を鳴らす
-      timer = setInterval(updateAndAnnounce, 1000);
-    }
+      function announceTimeLoop() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
 
-    // 時刻を更新して表示し、1分ごとに音声を鳴らす
-    function updateAndAnnounce() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
+        // 現在時刻を画面に表示
+        document.getElementById('time-display').textContent = `現在の時刻: ${hours}:${minutes}:${seconds}`;
 
-      // 現在時刻を画面に表示
-      const timeDisplay = document.getElementById('time-display');
-      timeDisplay.textContent = `現在の時刻: ${hours}:${minutes}:${seconds}`;
+        // 1分ごとに音声を鳴らす（秒が00のとき）
+        if (seconds === '00') {
+          const message = `${hours}時${minutes}分になりました。`;
+          announceTime(message);
 
-      // 1分ごとに時報を鳴らす（秒が00のとき）
-      if (seconds === '00') {
-        const message = `${hours}時${minutes}分になりました。`;
-        announceTime(message); // Web Speech APIで読み上げ
+          // 最後の時報を表示
+          document.getElementById('last-chime').textContent = `最後の時報: ${hours}:${minutes}:${seconds}`;
 
-        // 最後の時報を表示
-        const lastChime = document.getElementById('last-chime');
-        lastChime.textContent = `最後の時報: ${hours}:${minutes}:${seconds}`;
+          // ログに記録
+          const log = document.getElementById('log');
+          const logEntry = document.createElement('div');
+          logEntry.textContent = `${hours}:${minutes}:${seconds} - ${message}`;
+          log.appendChild(logEntry);
 
-        // ログに記録
-        const log = document.getElementById('log');
-        const logEntry = document.createElement('div');
-        logEntry.textContent = `${hours}:${minutes}:${seconds} - ${message}`;
-        log.appendChild(logEntry);
+          // スクロールを最下部に
+          log.scrollTop = log.scrollHeight;
+        }
 
-        // スクロールを最下部に
-        log.scrollTop = log.scrollHeight;
+        // 1秒後に再実行
+        setTimeout(announceTimeLoop, 1000);
       }
+
+      // 時報ループの開始
+      announceTimeLoop();
     }
 
     // Web Speech APIを使ってメッセージを読み上げる
@@ -111,7 +114,15 @@
     }
 
     // ボタンのクリックイベントで時報を開始
-    document.getElementById('start-button').addEventListener('click', startChime);
+    document.getElementById('start-button').addEventListener('click', () => {
+      // 最初に音声再生をトリガーして許可を得る
+      const utterance = new SpeechSynthesisUtterance("時報を開始します。");
+      utterance.lang = 'ja-JP';
+      window.speechSynthesis.speak(utterance);
+
+      // 時報を開始
+      startChime();
+    });
   </script>
 </body>
 </html>
