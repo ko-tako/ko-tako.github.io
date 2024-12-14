@@ -1,1 +1,8 @@
-
+{
+  "name": "PWA 時報",
+  "short_name": "時報",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+}
