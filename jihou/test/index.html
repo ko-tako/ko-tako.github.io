@@ -1,1 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWA 時報</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <h1>PWA 時報</h1>
+  <button id="start-button">時報を開始する</button>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch((err) => console.error('Service Worker registration failed:', err));
+    }
 
+    document.getElementById('start-button').addEventListener('click', () => {
+      setInterval(() => {
+        const now = new Date();
+        const message = `${now.getHours()}時${now.getMinutes()}分になりました。`;
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'ja-JP';
+        window.speechSynthesis.speak(utterance);
+      }, 60000);
+    });
+  </script>
+</body>
+</html>
