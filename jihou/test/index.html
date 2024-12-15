@@ -94,6 +94,14 @@
       });
     });
 
+    // 音声読み上げ
+    function announceTime(hours, minutes) {
+      const message = `${hours}時${minutes}分になりました。`;
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.lang = 'ja-JP'; // 日本語
+      window.speechSynthesis.speak(utterance);
+    }
+
     // 時報を開始する関数
     function startChime() {
       if (isChimeRunning) return; // すでに動作中なら無視
@@ -112,10 +120,11 @@
         // 現在時刻を画面に表示
         document.getElementById('time-display').textContent = `現在の時刻: ${hours}:${minutes}:${seconds}`;
 
-        // 1分ごとにPush通知を送る（秒が00のとき）
+        // 1分ごとにPush通知と音声読み上げを送る（秒が00のとき）
         if (seconds === '00') {
           const message = `${hours}時${minutes}分になりました。`;
           sendPushNotification(message);
+          announceTime(hours, minutes); // 時刻を読み上げ
 
           // 最後の時報を表示
           document.getElementById('last-chime').textContent = `最後の時報: ${hours}:${minutes}:${seconds}`;
