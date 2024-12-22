@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>素数生成</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    input, button {
+      padding: 6px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 16px;
+      line-height: 1.5em;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>素数生成</h1>
+  <p>正の整数を入力して「生成」をクリックすると、2 から入力した整数までの素数を一覧表示します。</p>
+
+  <!-- 入力欄 -->
+  <input type="number" id="maxNumber" placeholder="例：100" value="100" />
+  <!-- 実行ボタン -->
+  <button onclick="generatePrimes()">生成</button>
+
+  <!-- 結果表示欄 -->
+  <div id="result"></div>
+
+  <script>
+    /**
+     * 素数判定関数
+     * @param {number} num - 判定する数
+     * @returns {boolean} - 素数なら true、それ以外は false
+     */
+    function isPrime(num) {
+      if (num < 2) return false;
+      // num の平方根まで割り切れるかをチェック
+      for (let i = 2; i <= Math.sqrt(num); i++) {
+        if (num % i === 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    /**
+     * 素数を生成して表示する関数
+     */
+    function generatePrimes() {
+      // 入力された最大値を取得（文字列 → 数値 へ変換）
+      const max = parseInt(document.getElementById("maxNumber").value, 10);
+      const result = document.getElementById("result");
+
+      // 入力値チェック
+      if (isNaN(max) || max < 2) {
+        result.textContent = "2 以上の有効な整数を入力してください。";
+        return;
+      }
+
+      // 素数のリストを作成
+      const primes = [];
+      for (let i = 2; i <= max; i++) {
+        if (isPrime(i)) {
+          primes.push(i);
+        }
+      }
+
+      // 結果表示
+      if (primes.length === 0) {
+        result.textContent = `2 から ${max} の範囲に素数はありません。`;
+      } else {
+        result.textContent =
+          `2 から ${max} の範囲に素数は ${primes.length} 個あります：\n` +
+          primes.join(", ");
+      }
+    }
+  </script>
+</body>
+</html>
