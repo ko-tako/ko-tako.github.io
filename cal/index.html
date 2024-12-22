@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>modern_calendar</title>
+  <style>
+    /* ページ全体のスタイル */
+    body {
+      margin: 2rem;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f7;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    /* ヘッダ部分（ドロップダウンやボタン類） */
+    .control-panel {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    select, button, label {
+      font-size: 1rem;
+      padding: 0.4rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+    }
+    select:focus, button:focus, input[type=checkbox]:focus {
+      outline: 2px solid #007AFF; /* iOS風のアクセント色 */
+      outline-offset: 2px;
+    }
+    input[type="checkbox"] {
+      transform: scale(1.2);
+      margin-right: 0.3rem;
+      cursor: pointer;
+    }
+    /* テーブル部分 */
+    #cal {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      overflow: hidden; /* 角丸を適用 */
+    }
+    #cal caption {
+      font-weight: bold;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+    }
+    #cal th {
+      background: #E9ECEF;
+      padding: 0.6rem;
+      border-bottom: 1px solid #ccc;
+    }
+    #cal td {
+      width: calc(100% / 7);
+      height: 3em;
+      text-align: center;
+      vertical-align: middle;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    /* ホバー時の色変化 */
+    #cal td:hover {
+      background: #f0f8ff;
+    }
+    /* 今日の日付をハイライト（チェックがONのときだけJSが背景色を設定） */
+    .highlight-today {
+      background: #FFE9A0 !important; /* 薄いイエロー */
+      border-color: #FFC107; /* アクセントカラー */
+    }
+    /* 日曜は赤、土曜は青 */
+    .sun {
+      color: #e53935; /* red */
+    }
+    .sat {
+      color: #1e88e5; /* blue */
+    }
+    /* メモ表示欄 */
+    #memo {
+      max-width: 600px;
+      margin: 2rem auto 0;
+      padding: 1rem;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    #memo h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+    #memo textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 0.9rem;
+      padding: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+    #memo button {
+      margin-top: 0.5rem;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body onload="initCal()">
+
+  <h1>modern_calendar</h1>
+
+  <!-- コントロールパネル: 年・月選択、チェックボックス、ボタン -->
+  <div class="control-panel">
+    <select id="year"></select>
+    <select id="month"></select>
+    <label>
+      <input type="checkbox" id="chkToday" checked>今日を強調
+    </label>
+    <button onclick="goToday()">今日へ</button>
+  </div>
+
+  <!-- カレンダー表示用テーブル -->
+  <table id="cal">
+    <caption></caption>
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- 日付をクリックしたらメモ入力するUI -->
+  <div id="memo"></div>
+
+  <script>
+    /**
+     * ページ読み込み時の初期化
+     */
+    function initCal() {
+      const ySel = document.getElementById('year');
+      const mSel = document.getElementById('month');
+      const today = new Date();
+
+      // 年リストを（例）2020～2030で用意（必要に応じて変更）
+      for (let y = 2020; y <= 2030; y++) {
+        let opt = document.createElement('option');
+        opt.value = y;
+        opt.text = y;
+        ySel.add(opt);
+      }
+
+      // 月リスト(1～12)
+      for (let m = 1; m <= 12; m++) {
+        let opt = document.createElement('option');
+        opt.value = m;
+        opt.text = m;
+        mSel.add(opt);
+      }
+
+      // 初期値は「今日」の年月を選択
+      ySel.value = today.getFullYear();
+      mSel.value = today.getMonth() + 1;
+
+      // イベント登録（変更されたらカレンダー再描画）
+      ySel.onchange = mkCal;
+      mSel.onchange = mkCal;
+      document.getElementById('chkToday').onchange = mkCal;
+
+      // 初期描画
+      mkCal();
+    }
+
+    /**
+     * カレンダーを再描画
+     */
+    function mkCal() {
+      const cal       = document.getElementById('cal');
+      const caption   = cal.querySelector('caption');
+      const thead     = cal.querySelector('thead');
+      const tbody     = cal.querySelector('tbody');
+      const yearVal   = parseInt(document.getElementById('year').value, 10);
+      const monthVal  = parseInt(document.getElementById('month').value, 10);
+      const highlight = document.getElementById('chkToday').checked;
+      const today     = new Date();
+
+      // キャプション（「2024年 12月」など）
+      caption.textContent = `${yearVal}年 ${monthVal}月`;
+
+      // テーブルヘッダの書き換え
+      thead.innerHTML = '';
+      let trHead = thead.insertRow();
+      const days = ['日','月','火','水','木','金','土'];
+      for (let i=0; i<7; i++) {
+        let th = document.createElement('th');
+        th.textContent = days[i];
+        trHead.appendChild(th);
+      }
+
+      // テーブルボディ初期化
+      tbody.innerHTML = '';
+
+      // 1日の曜日(0=日曜,6=土曜)と、当月最終日
+      const firstDay = new Date(yearVal, monthVal - 1, 1).getDay();
+      const lastDate = new Date(yearVal, monthVal, 0).getDate();
+
+      // 1行目を作成: firstDayだけ空セル埋め
+      let tr = tbody.insertRow();
+      for (let i = 0; i < firstDay; i++) {
+        tr.insertCell(); // 空セル
+      }
+
+      // 日付を埋めていく
+      for (let d = 1; d <= lastDate; d++) {
+        let cell = tr.insertCell();
+        cell.textContent = d;
+
+        // 曜日判定
+        let w = new Date(yearVal, monthVal - 1, d).getDay();
+
+        // 日曜は赤、土曜は青
+        if (w === 0) cell.classList.add('sun');
+        if (w === 6) cell.classList.add('sat');
+
+        // 今日ならハイライト
+        if (highlight &&
+            yearVal === today.getFullYear() &&
+            monthVal === (today.getMonth() + 1) &&
+            d === today.getDate()) {
+          cell.classList.add('highlight-today');
+        }
+
+        // 日付セルをクリックするとメモ編集
+        cell.onclick = () => editMemo(yearVal, monthVal, d);
+
+        // 7日区切りで次の行へ
+        if ((firstDay + d - 1) % 7 === 6) {
+          tr = tbody.insertRow();
+        }
+      }
+    }
+
+    /**
+     * 「今日へ」ボタン：選択を今日にして再描画
+     */
+    function goToday() {
+      const t = new Date();
+      document.getElementById('year').value = t.getFullYear();
+      document.getElementById('month').value = t.getMonth() + 1;
+      mkCal();
+    }
+
+    /**
+     * 日付をクリックしたときに表示するメモ入力UI
+     */
+    function editMemo(year, month, day) {
+      const memoContainer = document.getElementById('memo');
+      const key = `mem_${year}_${month}_${day}`; // localStorageキー
+
+      // メモUIを組み立て
+      memoContainer.innerHTML = `
+        <h2>＜${year}年 ${month}月 ${day}日＞ メモ</h2>
+        <textarea id="memoTxt" rows="3"></textarea><br>
+        <button onclick="saveMemo('${key}')">保存</button>
+      `;
+
+      // すでにlocalStorageにデータがあれば読み出して表示
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        document.getElementById('memoTxt').value = saved;
+      }
+    }
+
+    /**
+     * メモを localStorage に保存
+     */
+    function saveMemo(key) {
+      const val = document.getElementById('memoTxt').value;
+      localStorage.setItem(key, val);
+      alert('メモを保存しました');
+    }
+  </script>
+</body>
+</html>
